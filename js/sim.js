@@ -381,7 +381,7 @@ export class Sim {
     // handoff for sweeps
     if (this.handoffPending && this.ball.state === 'held') {
       const qb = this.players[this.possession * 3], fl = this.players[this.possession * 3 + 2];
-      if (Math.hypot(qb.x - fl.x, qb.z - fl.z) < 1.9 || this.liveT > 0.9) {
+      if (Math.hypot(qb.x - fl.x, qb.z - fl.z) < 2.2 || this.liveT > 0.4) {
         this.handoffPending = false;
         this.giveBall(fl, 'handoff');
         this.passAllowed = false;

@@ -102,8 +102,8 @@ export class CameraRig {
       }
       case 'editor': {
         const e = ctx.editor || new THREE.Vector3(0, 0, 10);
-        pos.set(e.x + 4.6, 1.9, e.z + 2.2);
-        look.set(e.x, 1.25, e.z - 0.3);
+        pos.set(e.x + 1.6, 1.8, e.z + 7.0);
+        look.set(e.x + 2.4, 1.1, e.z);
         fov = 34;
         break;
       }

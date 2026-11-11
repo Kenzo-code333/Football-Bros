@@ -39,12 +39,12 @@ export class Stadium {
           float h = vP.y;
           vec3 top = vec3(0.012, 0.016, 0.05);
           vec3 mid = vec3(0.05, 0.04, 0.13);
-          vec3 hor = vec3(0.32, 0.14, 0.22);
+          vec3 hor = vec3(0.11, 0.055, 0.12);
           vec3 c = mix(hor, mid, smoothstep(-0.02, 0.18, h));
           c = mix(c, top, smoothstep(0.18, 0.7, h));
           // warm city glow on one side
           float glow = pow(max(0.0, 1.0 - abs(h - 0.02) * 6.0), 2.0) * (0.6 + 0.4 * vP.x);
-          c += vec3(0.25, 0.1, 0.05) * glow * 0.6;
+          c += vec3(0.22, 0.09, 0.04) * glow * 0.35;
           gl_FragColor = vec4(c, 1.0);
         }`,
     });
@@ -165,7 +165,7 @@ export class Stadium {
     // grass noise
     const img = c.getImageData(0, 0, W, H), d = img.data;
     for (let i = 0; i < d.length; i += 4) {
-      const n = (Math.random() - 0.5) * 18;
+      const n = (Math.random() - 0.5) * 7;
       d[i] = Math.max(0, Math.min(255, d[i] + n)); d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n * 1.2)); d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n * 0.6));
     }
     c.putImageData(img, 0, 0);
@@ -194,12 +194,12 @@ export class Stadium {
           vH = h;
           float stripe = mod(floor((wp.x + 30.0) / 5.0), 2.0);
           bool inPlay = abs(wp.x) < 30.0 && abs(wp.z) < 16.0;
-          vC = inPlay ? mix(vec3(0.15,0.44,0.18), vec3(0.19,0.53,0.22), stripe) : vec3(0.09,0.3,0.13);
+          vC = inPlay ? mix(vec3(0.045,0.36,0.07), vec3(0.06,0.48,0.1), stripe) : vec3(0.02,0.14,0.04);
           wp.x += sin(uTime * 1.7 + wp.x * 0.35 + wp.z * 0.2) * 0.04 * h;
           wp.z += cos(uTime * 1.3 + wp.x * 0.2) * 0.03 * h;
           gl_Position = projectionMatrix * viewMatrix * wp;
         }`,
-      fragmentShader: `varying float vH; varying vec3 vC; void main(){ gl_FragColor = vec4(vC * (0.55 + vH * 0.7), 1.0); }`,
+      fragmentShader: `varying float vH; varying vec3 vC; void main(){ gl_FragColor = vec4(vC * (0.7 + vH * 2.2), 1.0); }`,
     });
     const mesh = new THREE.InstancedMesh(blade, mat, N);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
@@ -298,7 +298,7 @@ export class Stadium {
         void main(){
           float l = 0.42 + 0.58 * max(0.0, dot(vN, normalize(vec3(0.3, 0.8, 0.4))));
           l = l > 0.75 ? 1.0 : l > 0.5 ? 0.78 : 0.55;
-          gl_FragColor = vec4(vColor * l * 0.9, 1.0);
+          gl_FragColor = vec4(vColor * l * 0.62, 1.0);
         }`,
     });
     // seats
@@ -355,9 +355,9 @@ export class Stadium {
 
   // ---------------- lights ----------------
   buildLights() {
-    this.hemi = new THREE.HemisphereLight(0x9fb4ff, 0x1a3020, 0.55);
+    this.hemi = new THREE.HemisphereLight(0x9fb4ff, 0x1a3020, 0.42);
     this.root.add(this.hemi);
-    this.ambient = new THREE.AmbientLight(0x404660, 0.35);
+    this.ambient = new THREE.AmbientLight(0x404660, 0.25);
     this.root.add(this.ambient);
     this.key = new THREE.DirectionalLight(0xfff3e0, 2.2);
     this.key.position.set(-30, 60, 40);

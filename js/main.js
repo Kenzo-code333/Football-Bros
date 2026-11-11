@@ -53,6 +53,9 @@ class App {
     this.frame = 0;
     bootMsg('Warming up…', 85);
     this.startDemo();
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('40px "Russo One"').then(() => { const t = this.stadium.teams; if (t) this.stadium.setTeams(t[0], t[1]); }).catch(() => {});
+    }
     // compile shaders up front to avoid hitches
     try { this.r.renderer.compile(this.r.scene, this.r.camera); } catch (e) { /* ignore */ }
     const q = new URLSearchParams(location.search);
@@ -483,7 +486,7 @@ class App {
     this.showcase.group.visible = !!editor;
     if (editor) {
       const t = performance.now() / 1000;
-      this.showcase.update({ x: this.showcasePos.x, y: 0, z: this.showcasePos.z, facing: Math.PI * 0.35 + Math.sin(t * 0.5) * 0.4, act: (Math.floor(t / 4) % 2) ? ACT.CELEB : ACT.NONE, actT: t % 4, actVar: 1, vx: 0, vz: 0, flags: 0, tPitch: 0, tRoll: 0, hasBall: false }, dt);
+      this.showcase.update({ x: this.showcasePos.x, y: 0, z: this.showcasePos.z, facing: Math.PI * 0.5 - 0.35 + Math.sin(t * 0.5) * 0.45, act: (Math.floor(t / 4) % 2) ? ACT.CELEB : ACT.NONE, actT: t % 4, actVar: 1, vx: 0, vz: 0, flags: 0, tPitch: 0, tRoll: 0, hasBall: false }, dt);
     }
     // ball
     const b = v.ball;

@@ -40,8 +40,9 @@ export class UI {
     this.current = name;
     if (!name) return;
     const builder = this['screen_' + name];
-    const el = builder.call(this, data);
-    el.classList.add('screen');
+    const el = document.createElement('div');
+    el.className = 'screen screen-' + name;
+    el.appendChild(builder.call(this, data));
     this.screens[name] = el;
     this.root.appendChild(el);
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('active')));
@@ -49,7 +50,7 @@ export class UI {
     const first = el.querySelector('button:not([disabled])');
     if (first && name !== 'lobby') setTimeout(() => first.focus({ preventScroll: true }), 50);
   }
-  refresh(data) { if (this.current) { const n = this.current; const el = this.screens[n]; const ne = this['screen_' + n].call(this, data); ne.classList.add('screen', 'active'); el.replaceWith(ne); this.screens[n] = ne; } }
+  refresh(data) { if (this.current) { const n = this.current; const el = this.screens[n]; const ne = this['screen_' + n].call(this, data); el.replaceChildren(ne); } }
 
   btn(label, fn, cls = '', attrs = '') {
     const b = h(`<button class="btn ${cls}" ${attrs}>${label}</button>`);

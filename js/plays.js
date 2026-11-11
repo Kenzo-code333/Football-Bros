@@ -27,7 +27,7 @@ export const OFF_PLAYS = {
   qbrun:  { id: 'qbrun',  name: 'QB Run',       tag: 'RUN', type: 'run', carrier: 'qb', desc: 'QB keeps it. Receivers block. Juke your way through!',
             routes: { wr: 'block', flex: 'lead' }, runPath: [[3, 3], [25, 3]] },
   sweep:  { id: 'sweep',  name: 'Jet Sweep',    tag: 'RUN', type: 'run', carrier: 'flex', desc: 'Instant handoff to the slot, sprint for the edge.',
-            routes: { wr: 'block', flex: [[-2.4, -5], [-2.2, -12], [4, -17], [26, -17]] }, runPath: [[-2.4, -5], [-2.2, -12], [4, -17], [26, -17]] },
+            routes: { wr: 'block', flex: [[-0.6, -5], [2.5, -11], [26, -13]] }, runPath: [[-0.6, -5], [2.5, -11], [26, -13]] },
 };
 
 const DEEP = ['bomb', 'verts'], SHORT = ['slant', 'curl', 'mesh', 'screen'], RUN = ['qbrun', 'sweep'];
