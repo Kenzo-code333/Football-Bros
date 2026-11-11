@@ -256,7 +256,12 @@ export class UI {
       side.appendChild(list);
     }
     body.appendChild(grid);
-    sa.appendChild(this.btn('Abandon Season', () => { if (confirm('Delete this season and start over?')) app.abandonSeason(); }, 'ghost danger'));
+    const ab = this.btn('Abandon Season', () => {
+      if (ab.dataset.armed) { app.abandonSeason(); return; }
+      ab.dataset.armed = '1'; ab.textContent = 'Click again to delete';
+      setTimeout(() => { if (ab.isConnected) { delete ab.dataset.armed; ab.textContent = 'Abandon Season'; } }, 3000);
+    }, 'ghost danger');
+    sa.appendChild(ab);
     return el;
   }
 
