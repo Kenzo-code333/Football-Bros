@@ -319,6 +319,7 @@ class App {
   // ---------------- input ----------------
   onKey(code) {
     const m = this.match;
+    if (code === 'KeyH' && this.match && !this.match.demo) { this.ui.toggleControls(); return; }
     if (code === 'Escape') {
       if (m && !m.demo) { if (this.gameOverShown) return; this.togglePause(); }
       else if (this.ui.current && this.ui.current !== 'main' && this.ui.current !== 'lobby') { const back = document.querySelector('.screen.active .btn.ghost'); if (back) back.click(); }

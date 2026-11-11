@@ -224,6 +224,22 @@ input[type=range] { width: min(320px, 45vw); accent-color: var(--gold); padding:
 @keyframes bannerIn { from { opacity: 0; transform: scale(2.2) skewX(-12deg); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes bannerOut { to { opacity: 0; transform: translateX(80px) skewX(-20deg); } }
 
+.ctl { position: absolute; bottom: 18px; left: 18px; width: 236px; padding: 9px 12px 10px; border-radius: 10px; background: rgba(8,10,24,0.74); border: 1px solid rgba(255,255,255,0.12); font-size: 14px; font-weight: 700; line-height: 1.15; z-index: 1; }
+.ctl.c1 { left: auto; right: 18px; }
+.ctl.mini { width: auto; padding: 6px 10px; color: var(--muted); }
+.ctl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.ctl-head b { font-family: var(--display); font-weight: 400; font-size: 15px; color: var(--gold); letter-spacing: 1px; }
+.ctl-head span { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+.ctl table { width: 100%; border-collapse: collapse; }
+.ctl td { padding: 2px 0; color: rgba(255,255,255,0.88); }
+.ctl td:last-child { text-align: right; white-space: nowrap; }
+.ctl td i { font-style: normal; color: var(--muted); margin: 0 2px; }
+.ctl kbd { font-size: 12px; padding: 0 5px; min-width: 1.4em; }
+.ctl-extra { margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); }
+.ctl-extra td { color: var(--muted); padding-top: 3px; }
+#hud.cinema .ctl { display: none; }
+@media (max-width: 1100px) { .ctl { width: 200px; font-size: 12px; } .ctl kbd { font-size: 11px; } }
+@media (max-height: 560px) { .ctl:not(.mini) .ctl-extra { display: none; } }
 .hint { position: absolute; bottom: 82px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 16px; color: rgba(255,255,255,0.85); text-shadow: 0 1px 4px #000; white-space: nowrap; }
 
 .calls { position: absolute; left: 0; right: 0; bottom: 84px; display: flex; justify-content: center; gap: 2vw; padding: 0 12px; }

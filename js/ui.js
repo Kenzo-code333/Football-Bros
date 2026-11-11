@@ -366,6 +366,7 @@ export class UI {
       <div class="letterbox top"></div><div class="letterbox bot"></div>
       <div class="replay-tag hidden"><i></i> INSTANT REPLAY</div>
       <div class="pstat p0 hidden"><div class="pname">P1</div><div class="stam"><i></i></div><div class="cds"><span data-c="J">J</span><span data-c="K">K</span><span data-c="L">L</span></div></div>
+      <div class="ctl c0 hidden"></div><div class="ctl c1 hidden"></div>
       <div class="pstat p1 hidden"><div class="pname">P2</div><div class="stam"><i></i></div><div class="cds"><span data-c="J">.</span><span data-c="K">,</span><span data-c="L">M</span></div></div>
       <div class="banner-wrap"></div>
       <div class="hint"></div>
@@ -470,6 +471,7 @@ export class UI {
       } else if (g.phase === 'presnap' && g.pos === lh.team) hint = '<kbd>SPACE</kbd> snap';
       else if (g.phase === 'replay' || g.phase === 'cine') hint = '<kbd>SPACE</kbd> skip';
     }
+    this.updateControls(g, ctx, replay);
     const he = $('.hint', el);
     if (he.dataset.h !== hint) { he.innerHTML = hint; he.dataset.h = hint; }
     this.updateCalls(g, ctx);
@@ -571,6 +573,50 @@ export class UI {
     setTimeout(() => { const bt = box.querySelector('button.primary') || box.querySelector('button'); bt && bt.focus(); }, 50);
   }
   hideGameOver() { $('.gameover', this.hudEl).classList.add('hidden'); }
+  toggleControls() {
+    this.ctlHidden = !this.ctlHidden;
+    try { localStorage.setItem('gblitz.ctlHidden', this.ctlHidden ? '1' : '0'); } catch (e) { /* ignore */ }
+    this.ctlKey = '';
+  }
+
+  // Corner card listing the keys for whatever the local player is doing right now.
+  updateControls(g, ctx, replay) {
+    if (this.ctlHidden == null) { try { this.ctlHidden = localStorage.getItem('gblitz.ctlHidden') === '1'; } catch (e) { this.ctlHidden = false; } }
+    const dual = ctx.locals.length > 1;
+    const roles = ctx.locals.map(lh => {
+      if (g.phase === 'select' || g.phase === 'presnap') return g.pos === lh.team ? 'off' : 'def';
+      return g.ballTeam === lh.team ? 'off' : 'def';
+    });
+    const hide = ctx.demo || replay || g.phase === 'td' || g.phase === 'cine' || g.phase === 'gameover' || (dual && g.phase === 'select');
+    const key = [hide, this.ctlHidden, dual, roles.join(','), g.phase === 'select'].join('|');
+    if (key === this.ctlKey) return;
+    this.ctlKey = key;
+    const K = (k) => k.split(' / ').map(x => `<kbd>${x}</kbd>`).join('<i>/</i>');
+    const MAP = [
+      { move: 'W A S D', sprint: 'Shift', pass: 'Space', target: 'Q / E', juke: 'J', spin: 'K', stiff: 'L', dive: 'Ctrl / C', sw: 'Tab', tackle: 'Space', jump: 'J', calls: '1 2 3', snap: 'Space' },
+      { move: '← ↑ → ↓', sprint: 'R-Shift', pass: '/ / Num0', target: '[ / ]', juke: '. / Num1', spin: ', / Num2', stiff: 'M / Num3', dive: "' / R-Ctrl", sw: 'Enter', tackle: '/ / Num0', jump: '. / Num1', calls: 'Num 7 8 9', snap: '/' },
+    ];
+    for (let k = 0; k < 2; k++) {
+      const el = $(`.ctl.c${k}`, this.hudEl);
+      const lh = ctx.locals[k];
+      if (!lh || hide) { el.classList.add('hidden'); continue; }
+      el.classList.remove('hidden');
+      const m = MAP[dual ? k : 0];
+      const who = dual ? `P${k + 1} · ` : '';
+      if (this.ctlHidden) { el.className = `ctl c${k} mini`; el.innerHTML = `${who}<kbd>H</kbd> show controls`; continue; }
+      el.className = `ctl c${k}`;
+      const off = roles[k] === 'off';
+      const rows = off
+        ? [['Move', m.move], ['Sprint', m.sprint], ['Pass (tap / hold = lob)', m.pass], ['Switch target', m.target], ['Juke', m.juke], ['Spin', m.spin], ['Stiff-arm', m.stiff], ['Dive', m.dive]]
+        : [['Move', m.move], ['Sprint', m.sprint], ['Switch player', m.sw], ['Tackle dive', m.tackle], ['Jump / swat', m.jump]];
+      const extra = [['Call play', m.calls]];
+      if (!dual || k === 0) extra.push(['Pause', 'Esc'], ['Hide this', 'H']);
+      el.innerHTML = `<div class="ctl-head"><b>${who}${off ? 'OFFENSE' : 'DEFENSE'}</b><span>controls</span></div>
+        <table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${K(b)}</td></tr>`).join('')}</table>
+        <table class="ctl-extra">${extra.map(([a, b]) => `<tr><td>${a}</td><td>${K(b)}</td></tr>`).join('')}</table>`;
+    }
+  }
+
   setFps(v) { this.fpsEl.textContent = `${v} FPS`; }
 }
 
