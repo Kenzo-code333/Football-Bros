@@ -183,7 +183,7 @@ export class Stadium {
     const N = this.quality.grass;
     if (!N) return;
     const blade = new THREE.BufferGeometry();
-    blade.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.025, 0, 0, 0.025, 0, 0, 0, 1, 0, 0, 0, -0.025, 0, 0, 0.025, 0, 1, 0]), 3));
+    blade.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-0.018, 0, 0, 0.018, 0, 0, 0, 1, 0, 0, 0, -0.018, 0, 0, 0.018, 0, 1, 0]), 3));
     const mat = new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } }, side: THREE.DoubleSide,
       vertexShader: `uniform float uTime; varying float vH; varying vec3 vC;
@@ -199,7 +199,7 @@ export class Stadium {
           wp.z += cos(uTime * 1.3 + wp.x * 0.2) * 0.03 * h;
           gl_Position = projectionMatrix * viewMatrix * wp;
         }`,
-      fragmentShader: `varying float vH; varying vec3 vC; void main(){ gl_FragColor = vec4(vC * (0.7 + vH * 2.2), 1.0); }`,
+      fragmentShader: `varying float vH; varying vec3 vC; void main(){ gl_FragColor = vec4(vC * (0.6 + vH * 0.75), 1.0); }`,
     });
     const mesh = new THREE.InstancedMesh(blade, mat, N);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
@@ -207,7 +207,7 @@ export class Stadium {
     for (let i = 0; i < N; i++) {
       const z = FZ - 0.5 - Math.pow(Math.random(), 1.7) * (FZ * 2 - 1);
       const x = (Math.random() * 2 - 1) * (FX - 0.5);
-      p.set(x, 0, z); q.setFromAxisAngle(up, Math.random() * Math.PI); const h = 0.1 + Math.random() * 0.14; s.set(1, h, 1);
+      p.set(x, 0, z); q.setFromAxisAngle(up, Math.random() * Math.PI); const h = 0.07 + Math.random() * 0.1; s.set(1, h, 1);
       m.compose(p, q, s); mesh.setMatrixAt(i, m);
     }
     mesh.frustumCulled = false;

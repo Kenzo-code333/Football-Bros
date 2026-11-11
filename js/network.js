@@ -44,7 +44,15 @@ class Emitter {
 
 // ---------------- Host ----------------
 export class NetHost extends Emitter {
-  constructor() { super(); this.conns = new Map(); this.peer = null; this.code = null; this.isHost = true; this.id = 'host'; }
+  constructor() {
+    super(); this.conns = new Map(); this.peer = null; this.code = null; this.isHost = true; this.id = 'host';
+    this.lastSeen = new Map();
+    // heartbeat: clients send inputs/pings constantly; drop anyone silent for 6s
+    this.hb = setInterval(() => {
+      const now = performance.now();
+      for (const [id, t] of this.lastSeen) if (now - t > 6000) this.drop(id);
+    }, 1000);
+  }
 
   async open(tries = 4) {
     const Peer = await loadPeer();
@@ -70,20 +78,30 @@ export class NetHost extends Emitter {
   accept(conn) {
     conn.on('open', () => {
       this.conns.set(conn.peer, conn);
+      this.lastSeen.set(conn.peer, performance.now());
       this.emit('join', conn.peer, conn.metadata || {});
     });
-    conn.on('data', (msg) => this.emit('msg', conn.peer, msg));
-    const gone = () => { if (this.conns.has(conn.peer)) { this.conns.delete(conn.peer); this.emit('leave', conn.peer); } };
+    conn.on('data', (msg) => { this.lastSeen.set(conn.peer, performance.now()); this.emit('msg', conn.peer, msg); });
+    const gone = () => this.drop(conn.peer);
     conn.on('close', gone);
     conn.on('error', gone);
     // ICE failures don't always fire close
     conn.on('iceStateChanged', (s) => { if (s === 'failed' || s === 'disconnected' || s === 'closed') setTimeout(() => { if (conn.peerConnection && ['failed', 'closed'].includes(conn.peerConnection.iceConnectionState)) gone(); }, 3000); });
   }
 
+  drop(id) {
+    this.lastSeen.delete(id);
+    const c = this.conns.get(id);
+    if (!c) return;
+    this.conns.delete(id);
+    try { c.close(); } catch (e) { /* ignore */ }
+    this.emit('leave', id);
+  }
+
   send(id, msg) { const c = this.conns.get(id); if (c && c.open) { try { c.send(msg); } catch (e) { /* ignore */ } } }
   broadcast(msg, except) { for (const [id, c] of this.conns) if (id !== except && c.open) { try { c.send(msg); } catch (e) { /* ignore */ } } }
   kick(id, reason) { this.send(id, { t: 'kick', reason }); setTimeout(() => { const c = this.conns.get(id); if (c) c.close(); }, 300); }
-  close() { try { this.broadcast({ t: 'closed' }); } catch (e) { /* ignore */ } setTimeout(() => { try { this.peer && this.peer.destroy(); } catch (e) { /* ignore */ } }, 200); this.conns.clear(); }
+  close() { clearInterval(this.hb); try { this.broadcast({ t: 'closed' }); } catch (e) { /* ignore */ } setTimeout(() => { try { this.peer && this.peer.destroy(); } catch (e) { /* ignore */ } }, 200); this.conns.clear(); }
   link() { const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('room', this.code); const q = new URLSearchParams(location.search); for (const k of ['peerhost', 'peerport', 'peerpath', 'peersecure']) if (q.get(k)) u.searchParams.set(k, q.get(k)); return u.toString(); }
 }
 
