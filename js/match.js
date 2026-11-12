@@ -38,7 +38,7 @@ export class LocalMatch {
     this.cfg = cfg;
     this.isClient = false;
     this.localHumans = cfg.localHumans || [];
-    this.sim = new Sim({ teams: cfg.teams, difficulty: cfg.difficulty, mode: cfg.mode, humans: cfg.humans });
+    this.sim = new Sim({ teams: cfg.teams, difficulty: cfg.difficulty, mode: cfg.mode, humans: cfg.humans, assist: !!cfg.assist });
     this.teams = cfg.teams;
     this.acc = 0;
     this.cur = decodeSnap(this.sim.snapshot());

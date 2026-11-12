@@ -12,11 +12,26 @@ Everything is made in code at runtime: the 8 teams and their logos, the players,
 
 | Mode | What it is |
 |---|---|
-| **Quick Play** | You against the AI. Choose your team, the opponent and one of three difficulties (Rookie / Pro / All-Star). |
+| **Quick Play** | You against the AI. Choose your team, the opponent and one of four difficulties (Beginner / Rookie / Pro / All-Star). |
 | **Local 2 Player** | Two players on one keyboard, one team each. AI fills the other spots on both teams. |
 | **Online** | Up to 6 friends (3 per team) over the internet using PeerJS. Empty spots get AI players. |
 | **Season** | A 7-game round-robin season against the other 7 teams. The top 4 make the playoffs, and the winner of the final takes the Blitz Bowl. Progress is saved in your browser. |
 | **Team Editor** | Change any team's colors, helmet design and jersey style, and pick your jersey number. |
+
+## New to football? Beginner help
+
+Never played American football? Start with **Learn the Basics** on the main menu. It explains the game in six short steps, then starts a practice game.
+
+**Beginner help** is on by default. You can switch it off in Settings or on the team-select screen. While it's on:
+
+- A **coach** box at the top of the screen tells you, in plain words, what to do right now ("Run → into the end zone", "Tackle the player in the red ring") and explains what just happened ("Nobody caught the pass, so that try is used up").
+- **Gold arrows** on the grass point to the end zone while you carry the ball. A **red ring** marks the player you need to tackle.
+- The score bar says **"Try 2 of 4 · 14 yds"** instead of football jargon like "2nd & 14".
+- You get **12 seconds** to pick a play, and the simplest play is marked **EASIEST**.
+- Your passes are more accurate, your teammates catch better, and your team fumbles less.
+- On defense you automatically control the defender closest to the ball.
+
+The new **Beginner** difficulty makes the AI opponents slower and easier to beat.
 
 ## Rules (arcade style)
 

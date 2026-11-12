@@ -66,6 +66,8 @@ export class Sim {
     this.diff = DIFFICULTY[opts.difficulty || 'pro'];
     this.diffKey = opts.difficulty || 'pro';
     this.mode = opts.mode || 'ai';
+    this.assist = !!opts.assist;            // beginner assist for human teams
+    this.pickLen = this.assist ? RULES.pickTimeAssist : RULES.pickTime;
     this.players = [];
     for (let i = 0; i < 6; i++) this.players.push(makePlayer(i));
     this.ball = { state: 'held', holder: 0, x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0, spin: 0, passer: -1, intended: -1,
@@ -79,7 +81,7 @@ export class Sim {
     this.possession = 0; this.los = 0; this.down = 1; this.fdX = 0; this.goalToGo = false;
     this.phase = 'pregame'; this.phaseT = 0; this.phaseDur = 0;
     this.offOptions = offerPlays(true); this.offPlay = null; this.defPlay = null;
-    this.picks = { off: null, def: null }; this.pickTimer = RULES.pickTime;
+    this.picks = { off: null, def: null }; this.pickTimer = this.pickLen;
     this.target = [1, 4];
     this.aim = null;
     this.passAllowed = true;
@@ -174,7 +176,7 @@ export class Sim {
   enterSelect() {
     this.offOptions = offerPlays(this.firstOffer); this.firstOffer = false;
     this.picks = { off: null, def: null };
-    this.pickTimer = RULES.pickTime;
+    this.pickTimer = this.pickLen;
     this.aiPickDelay = [rand(0.5, 1.4), rand(0.5, 1.4)];
     this.setPhase('select');
     for (const p of this.players) { if (p.act !== ACT.DOWN && p.act !== ACT.TUMBLE && p.act !== ACT.GETUP) this.setAct(p, ACT.NONE); p.engaged = 0; }
@@ -388,7 +390,7 @@ export class Sim {
         qb.assign = { type: 'block' };
       }
     }
-    for (const h of this.humans) this.processHuman(h, dt);
+    for (const h of this.humans) { this.autoSwitch(h); this.processHuman(h, dt); }
     for (const p of this.players) {
       this.tickTimers(p, dt);
       if (this.updateBodyState(p, dt)) continue;
@@ -419,6 +421,26 @@ export class Sim {
     if (this.phase === 'live' || this.phase === 'onside') this.checkTackles();
     if (this.phase === 'live' || this.phase === 'onside') this.checkRules();
     this.updateAim();
+  }
+
+  assisted(team) { return this.assist && this.teamHumans(team).length > 0; }
+
+  // Beginner assist: on defense, keep control of the defender closest to the ball.
+  autoSwitch(h) {
+    if (!this.assisted(h.team) || h.pIdx < 0 || this.ballTeam() === h.team) return;
+    if ((h.autoT = (h.autoT || 0) - 1 / 60) > 0) return;
+    h.autoT = 0.5;
+    const b = this.ball, me = this.players[h.pIdx];
+    if (me.act === ACT.TDIVE || me.act === ACT.JUMP) return;
+    const myD = Math.hypot(me.x - b.x, me.z - b.z);
+    let best = null, bd = myD - 3.5;
+    for (const p of this.players) {
+      if (p.team !== h.team || p === me || (p.human != null && p.human !== h.id)) continue;
+      if (p.act === ACT.DOWN || p.act === ACT.TUMBLE || p.act === ACT.GETUP) continue;
+      const d = Math.hypot(p.x - b.x, p.z - b.z);
+      if (d < bd) { bd = d; best = p; }
+    }
+    if (best) { this.setControl(h, best.i); this.emit('switch', { team: h.team }); }
   }
 
   aiSpeed(p) { return this.aiDiff(p).speed; }
@@ -742,7 +764,8 @@ export class Sim {
     for (const d of this.players) if (d.team !== qb.team && d.act !== ACT.DOWN && Math.hypot(d.x - qb.x, d.z - qb.z) < 3) pressure = 1;
     const moving = Math.hypot(qb.vx, qb.vz) > 5 ? 1 : 0;
     const acc = human ? 0.9 : this.aiDiff(qb).qbAcc;
-    const err = (0.25 + dist * 0.028 * (1.5 - acc) + pressure * 1.1 + moving * 0.5) * (1.2 - acc) * 1.6;
+    let err = (0.25 + dist * 0.028 * (1.5 - acc) + pressure * 1.1 + moving * 0.5) * (1.2 - acc) * 1.6;
+    if (human && this.assisted(qb.team)) err *= 0.3;
     const ea = rand(0, Math.PI * 2), er = Math.random() * err;
     sol.x += Math.cos(ea) * er; sol.z += Math.sin(ea) * er;
     sol.z = clamp(sol.z, -FIELD.halfWid - 1, FIELD.halfWid + 1);
@@ -824,9 +847,10 @@ export class Sim {
       const tg = b.target ? Math.hypot(p.x - b.target.x, p.z - b.target.z) : c.d;
       const dfac = Math.min(c.d, b.deflected ? c.d : tg) / c.rad;
       if (p.team === passTeam) {
-        let skill = p.human != null ? 0.93 : this.aiDiff(p).catchSkill;
+        let skill = this.assisted(p.team) ? 0.98 : p.human != null ? 0.93 : this.aiDiff(p).catchSkill;
         let contest = 0;
         for (const d of this.players) if (d.team !== p.team && d.act !== ACT.DOWN && Math.hypot(d.x - p.x, d.z - p.z) < 1.7) contest = Math.max(contest, d.act === ACT.JUMP ? 0.38 : 0.2);
+        if (this.assisted(p.team)) contest *= 0.45;
         const bullet = b.lob < 0.3 && b.airT < 0.5 ? 0.12 : 0;
         const pc = clamp(skill - 0.32 * dfac * dfac - contest - bullet - (c.diving ? 0.08 : 0) + (b.deflected ? -0.15 : 0), 0.08, 0.98);
         if (Math.random() < pc) { this.completeCatch(p); return; }
@@ -992,7 +1016,7 @@ export class Sim {
     }
     const isQBSack = c.slot === 0 && c.team === this.possession && this.passAllowed && dirOf(c.team) * (spotX - this.los) < 0;
     // fumble?
-    const fumbleChance = big ? 0.24 : 0.035;
+    const fumbleChance = (big ? 0.24 : 0.035) * (this.assisted(c.team) ? 0.25 : 1);
     if (this.phase === 'live' && Math.random() < fumbleChance) {
       const b = this.ball;
       b.state = 'loose'; b.holder = -1; b.lastTeam = c.team;
@@ -1349,7 +1373,7 @@ export class Sim {
       pos: this.possession, down: this.down, toGo: this.goalToGo ? 'Goal' : Math.max(1, Math.round(d * (this.fdX - this.los))),
       ballOn: Math.round(ballOn), los: +this.los.toFixed(2), fdX: +this.fdX.toFixed(2),
       opts: this.offOptions, picks: { off: !!this.picks.off, def: !!this.picks.def }, offPlay: this.offPlay ? this.offPlay.id : null, defPlay: this.defPlay ? this.defPlay.id : null,
-      pickTimer: +Math.max(0, this.pickTimer).toFixed(2),
+      pickTimer: +Math.max(0, this.pickTimer).toFixed(2), pickLen: this.pickLen, assist: this.assist,
       target: this.target.slice(), aim: this.aim, passAllowed: this.passAllowed,
       conv: this.conversion ? this.conversion.pts : 0,
       choice: this.choice ? { kind: this.choice.kind, team: this.choice.team, timer: +this.choice.timer.toFixed(1), value: this.choice.value } : null,

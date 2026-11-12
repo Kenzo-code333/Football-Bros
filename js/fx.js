@@ -165,6 +165,18 @@ export class FX {
     const mkRing = (c, s) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: rt, color: c, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending })); m.renderOrder = 3; m.visible = false; this.group.add(m); return m; };
     this.ctrlRings = [mkRing(new THREE.Color(0.3, 1.6, 2.0), 1.9), mkRing(new THREE.Color(2.0, 0.9, 0.2), 1.9)];
     this.targetRing = mkRing(new THREE.Color(2.0, 1.8, 0.3), 2.3);
+    this.dangerRing = mkRing(new THREE.Color(2.2, 0.35, 0.25), 2.4);
+    // beginner guide: three chevrons on the ground pointing to the end zone
+    const chev = new THREE.Shape();
+    chev.moveTo(0, 0); chev.lineTo(0.55, 0.55); chev.lineTo(0, 1.1); chev.lineTo(-0.28, 1.1); chev.lineTo(0.27, 0.55); chev.lineTo(-0.28, 0); chev.closePath();
+    const chevGeo = new THREE.ShapeGeometry(chev).translate(0, -0.55, 0).rotateX(-Math.PI / 2);
+    this.goalArrow = new THREE.Group();
+    this.chevrons = [0, 1, 2].map(k => {
+      const m = new THREE.Mesh(chevGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 1.8, 0.4), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }));
+      m.renderOrder = 3; this.goalArrow.add(m); return m;
+    });
+    this.goalArrow.visible = false;
+    this.group.add(this.goalArrow);
     this.landMarker = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: targetTex(), color: new THREE.Color(2, 2, 2), transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }));
     this.landMarker.renderOrder = 3; this.landMarker.visible = false;
     this.group.add(this.landMarker);
@@ -269,6 +281,19 @@ export class FX {
   setLines(losX, fdX, visible, showFd) {
     this.losLine.visible = visible; this.fdLine.visible = visible && showFd;
     this.losLine.position.x = losX; this.fdLine.position.x = fdX;
+  }
+
+  setGoalArrow(p, dir) {
+    this.goalArrow.visible = !!p;
+    if (!p) return;
+    this.goalArrow.position.set(p.x + dir * 1.6, 0.05, p.z);
+    this.goalArrow.rotation.y = dir > 0 ? 0 : Math.PI;
+    const t = (this.time * 1.6) % 1;
+    this.chevrons.forEach((m, k) => {
+      const f = (k + t) / 3;
+      m.position.x = f * 3.2;
+      m.material.opacity = Math.sin(f * Math.PI) * 0.9;
+    });
   }
 
   setRing(ring, pos, visible, pulse = 0) {

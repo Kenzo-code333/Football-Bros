@@ -21,7 +21,7 @@ const bootMsg = (t, p) => { const m = document.querySelector('.boot-msg'); if (m
 
 class App {
   async init() {
-    this.settings = Object.assign({ quality: 'medium', difficulty: 'pro', showFps: false, name: 'Player' + Math.floor(rand(10, 99)), lastTeam: 0 }, storeGet('settings', {}));
+    this.settings = Object.assign({ quality: 'medium', difficulty: 'beginner', beginner: true, showFps: false, name: 'Player' + Math.floor(rand(10, 99)), lastTeam: 0 }, storeGet('settings', {}));
     if (!QUALITY[this.settings.quality]) this.settings.quality = 'medium';
     this.Q = QUALITY[this.settings.quality];
     bootMsg('Building stadium…', 20);
@@ -113,7 +113,7 @@ class App {
     const localHumans = mode === 'local2' ? [{ id: 'p1', team: 0, pad: 0 }, { id: 'p2', team: 1, pad: 1 }] : [{ id: 'p1', team: extra.userSide ?? 0, pad: 0 }];
     this.input.setDual(mode === 'local2');
     this.applyTeams(teams, mode === 'local2' ? -1 : localHumans[0].team);
-    this.match = new LocalMatch(this, { teams, difficulty: diff, mode: mode === 'season' ? 'season' : mode, humans, localHumans });
+    this.match = new LocalMatch(this, { teams, difficulty: diff, mode: mode === 'season' ? 'season' : mode, humans, localHumans, assist: extra.assist ?? this.settings.beginner });
     this.matchMode = mode;
     this.matchExtra = extra;
     this.enterMatchUI(teams, false);
@@ -146,6 +146,12 @@ class App {
   pauseSub(name) {
     this.ui.showPause(false);
     this.ui.show(name, { back: () => { this.ui.show(null); this.ui.showPause(true, !!this.net); } });
+  }
+
+  // One-click practice game from the Learn screen: easiest AI, beginner help on.
+  startPractice() {
+    const a = this.settings.lastTeam ?? 0;
+    this.startLocalMatch('ai', a, (a + 3) % 8, 'beginner', { assist: true });
   }
 
   pickPlay(humanId, id) { this.matchCommand(humanId, { type: 'pick', id }); this.audio.blip(880, 0.06); }
@@ -267,7 +273,7 @@ class App {
     this.applyTeams(teams);
     const me = L.players.find(p => p.id === 'host');
     this.input.setDual(false);
-    this.match = new LocalMatch(this, { teams, difficulty: L.difficulty, mode: 'online', humans, localHumans: [{ id: 'host', team: me.team, pad: 0 }], net: this.net });
+    this.match = new LocalMatch(this, { teams, difficulty: L.difficulty, mode: 'online', humans, localHumans: [{ id: 'host', team: me.team, pad: 0 }], net: this.net, assist: this.settings.beginner });
     this.matchMode = 'online';
     this.enterMatchUI(teams, true);
   }
@@ -527,6 +533,18 @@ class App {
       if (tp) { this.fx.setRing(this.fx.targetRing, tp, true, 1); tgtVis = true; }
     }
     if (!tgtVis) this.fx.targetRing.visible = false;
+    // beginner guides: arrows to the end zone for your ball carrier, red ring on the player to tackle
+    let arrowAt = null, dangerAt = null, arrowDir = 1;
+    if (g.assist && g.phase === 'live' && b.state === 0 && b.holder >= 0 && !editor) {
+      const carrier = v.players[b.holder], cTeam = b.holder < 3 ? 0 : 1;
+      for (const lh of locals) {
+        const hum = g.humans.find(x => x.id === lh.id);
+        if (hum && hum.pIdx === b.holder) { arrowAt = carrier; arrowDir = cTeam === 0 ? 1 : -1; }
+        else if (lh.team !== cTeam) dangerAt = carrier;
+      }
+    }
+    this.fx.setGoalArrow(arrowAt, arrowDir);
+    this.fx.setRing(this.fx.dangerRing, dangerAt || { x: 0, z: 0 }, !!dangerAt, 1);
     // landing marker: aim preview or actual pass target
     const lm = this.fx.landMarker;
     if (g.aim && locals.some(l => l.team === g.aim.team)) { lm.visible = true; lm.position.set(g.aim.x, 0.05, g.aim.z); const s = 0.8 + g.aim.lob * 0.6; lm.scale.set(s, 1, s); lm.material.color.setRGB(2, 2 - g.aim.lob, 0.4 + (1 - g.aim.lob)); }
@@ -615,7 +633,7 @@ class App {
     const humans = mode === 'local2' ? [{ id: 'p1', team: 0, name: 'P1' }, { id: 'p2', team: 1, name: 'P2' }] : [{ id: 'p1', team: 0, name: this.settings.name }];
     const localHumans = mode === 'local2' ? [{ id: 'p1', team: 0, pad: 0 }, { id: 'p2', team: 1, pad: 1 }] : [{ id: 'p1', team: 0, pad: 0 }];
     this.applyTeams(teams, mode === 'local2' ? -1 : 0);
-    this.match = new LocalMatch(this, { teams, difficulty: this.settings.difficulty, mode, humans, localHumans });
+    this.match = new LocalMatch(this, { teams, difficulty: this.settings.difficulty, mode, humans, localHumans, assist: this.settings.beginner });
     this.enterMatchUI(teams, false);
   }
 }

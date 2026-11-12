@@ -10,6 +10,27 @@ const h = (html) => { const t = document.createElement('template'); t.innerHTML 
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ord = n => ['1st', '2nd', '3rd', '4th'][n - 1] || `${n}th`;
 const fmtClock = s => { s = Math.max(0, Math.ceil(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const EXPLAIN = {
+  'FIRST DOWN': 'You moved the ball 20 yards, so you get 4 new tries!',
+  'INCOMPLETE': 'Nobody caught the pass, so that try is used up and the ball goes back to the blue line.',
+  'OUT OF BOUNDS': 'The play left the field, so it stops there.',
+  'TURNOVER ON DOWNS': 'All 4 tries were used without reaching the yellow line, so the other team gets the ball.',
+  'INTERCEPTED!': 'The defense caught the pass, so now they have the ball.',
+  'FUMBLE!': 'The ball got knocked loose! Whoever grabs it keeps it.',
+  'RECOVERED!': 'A loose ball was picked up, so that team has it now.',
+  'SACKED!': 'The quarterback was tackled before throwing. Throw sooner next time!',
+  'BIG SACK!': 'The quarterback was tackled before throwing. Throw sooner next time!',
+  'TOUCHDOWN!': 'Touchdown! That is 6 points.',
+  'SAFETY!': 'The ball carrier was tackled in their own end zone: 2 points for the other team.',
+  'TURNOVER': 'The ball changed teams.',
+  'BIG HIT!': 'Huge tackle! Big hits can knock the ball loose.',
+  'STIFF ARM!': 'The ball carrier pushed a tackler away.',
+  'SWATTED!': 'The defense knocked the pass away.',
+  'EXTRA POINT GOOD!': 'Bonus point scored!',
+  '2-POINT GOOD!': 'Two bonus points scored!',
+  'NO GOOD': 'The bonus try did not score.',
+};
+
 export const EMOJIS = ['🔥', '😂', '😱', '👏', '💪', '😎', '🏈', '😤'];
 
 export class UI {
@@ -72,6 +93,7 @@ export class UI {
     </div>`);
     const mb = $('.menu-buttons', el);
     const items = [
+      ['Learn the Basics', 'new to football? start here', () => this.show('learn')],
       ['Quick Play', 'vs AI', () => this.show('setup', { mode: 'ai' })],
       ['Local 2 Player', 'same keyboard', () => this.show('setup', { mode: 'local2' })],
       ['Online', 'play with friends', () => this.show('online')],
@@ -124,6 +146,12 @@ export class UI {
     const so = $('.setup-opts', el);
     so.appendChild(h(`<div class="opt-label">${mode === 'local2' ? 'AI teammates' : 'Difficulty'}</div>`));
     so.appendChild(this.diffPicker(diff, v => { diff = v; }));
+    const bh = h(`<label class="beginner-opt"><span class="toggle"><input type="checkbox" id="beginner-setup" ${s.beginner ? 'checked' : ''}><i></i></span>
+      <span><b>Beginner help</b><small>Coach tips, easier passing and catching, auto-switch on defense</small></span></label>`);
+    $('input', bh).addEventListener('change', (e) => { s.beginner = e.target.checked; this.app.saveSettings(); });
+    so.appendChild(bh);
+    el.insertBefore(h('<p class="learn-link muted">New to football? <a href="#" id="learn-from-setup">Learn the basics in 1 minute</a></p>'), $('.setup-actions', el));
+    $('#learn-from-setup', el).addEventListener('click', (e) => { e.preventDefault(); this.show('learn', { back: () => this.show('setup', { mode }) }); });
     const sa = $('.setup-actions', el);
     sa.appendChild(this.btn('Back', () => this.show(mode === 'season' ? 'season' : 'main'), 'ghost'));
     sa.appendChild(this.btn(mode === 'season' ? 'Start Season' : 'Kick Off ▶', () => {
@@ -314,6 +342,7 @@ export class UI {
       <div class="set-row"><span>Music</span><input type="range" min="0" max="1" step="0.05" data-v="music" value="${vol.music}"></div>
       <div class="set-row"><span>Sound effects</span><input type="range" min="0" max="1" step="0.05" data-v="sfx" value="${vol.sfx}"></div>
       <div class="set-row"><span>Crowd</span><input type="range" min="0" max="1" step="0.05" data-v="crowd" value="${vol.crowd}"></div>
+      <div class="set-row"><span>Beginner help <small class="muted">(coach tips, easier passes, auto-switch)</small></span><label class="toggle"><input type="checkbox" id="beginner-set" ${s.beginner ? 'checked' : ''}><i></i></label></div>
       <div class="set-row"><span>Show FPS</span><label class="toggle"><input type="checkbox" id="fps" ${s.showFps ? 'checked' : ''}><i></i></label></div>
       <div class="setup-actions"></div></div>`);
     const q = $('.seg.q', el);
@@ -323,6 +352,7 @@ export class UI {
       q.appendChild(b);
     }
     el.querySelectorAll('[data-v]').forEach(r => r.addEventListener('input', () => app.audio.setVolume(r.dataset.v, +r.value)));
+    $('#beginner-set', el).addEventListener('change', (e) => { s.beginner = e.target.checked; app.saveSettings(); });
     $('#fps', el).addEventListener('change', (e) => { s.showFps = e.target.checked; app.saveSettings(); this.fpsEl.classList.toggle('hidden', !s.showFps); });
     $('.setup-actions', el).appendChild(this.btn('Back', () => (data.back ? data.back() : this.show('main')), 'ghost'));
     return el;
@@ -369,6 +399,7 @@ export class UI {
       <div class="ctl c0 hidden"></div><div class="ctl c1 hidden"></div>
       <div class="pstat p1 hidden"><div class="pname">P2</div><div class="stam"><i></i></div><div class="cds"><span data-c="J">.</span><span data-c="K">,</span><span data-c="L">M</span></div></div>
       <div class="banner-wrap"></div>
+      <div class="coach hidden"><b>COACH</b><span></span></div>
       <div class="hint"></div>
       <div class="scorebug">
         <div class="sb-team t0"><img><span class="abbr"></span><span class="score">0</span><b class="poss"></b></div>
@@ -430,7 +461,7 @@ export class UI {
     $('.t0 .poss', el).classList.toggle('on', g.pos === 0); $('.t1 .poss', el).classList.toggle('on', g.pos === 1);
     $('.sb-clock .q', el).textContent = g.ot ? 'OT' : `Q${Math.min(4, g.q)}`;
     $('.sb-clock .clk', el).textContent = fmtClock(g.clock);
-    const dd = g.conv ? `${g.conv}-PT TRY` : `${ord(g.down)} & ${g.toGo}`;
+    const dd = g.conv ? `${g.conv}-PT TRY` : g.assist ? `Try ${g.down} of 4 · ${g.toGo === 'Goal' ? 'goal line' : g.toGo + ' yds'}` : `${ord(g.down)} & ${g.toGo}`;
     $('.dd', el).textContent = dd;
     const bo = g.ballOn === 30 ? 'MID 30' : g.ballOn < 30 ? `OWN ${g.ballOn}` : `OPP ${60 - g.ballOn}`;
     $('.bo', el).textContent = bo;
@@ -472,6 +503,7 @@ export class UI {
       else if (g.phase === 'replay' || g.phase === 'cine') hint = '<kbd>SPACE</kbd> skip';
     }
     this.updateControls(g, ctx, replay);
+    this.updateCoach(g, view, ctx, replay);
     const he = $('.hint', el);
     if (he.dataset.h !== hint) { he.innerHTML = hint; he.dataset.h = hint; }
     this.updateCalls(g, ctx);
@@ -482,7 +514,7 @@ export class UI {
     const wrap = $('.calls', this.hudEl);
     if (g.phase !== 'select' || ctx.demo) { if (wrap.childElementCount) { wrap.innerHTML = ''; this.pickCanvasKey = ''; } return; }
     const key = g.opts.join(',') + '|' + g.pos + '|' + ctx.locals.map(l => l.team).join(',') + '|' + JSON.stringify(g.picks);
-    if (key === this.pickCanvasKey) { wrap.querySelectorAll('.timer i').forEach(t => { t.style.width = `${(g.pickTimer / 5) * 100}%`; }); return; }
+    if (key === this.pickCanvasKey) { wrap.querySelectorAll('.timer i').forEach(t => { t.style.width = `${(g.pickTimer / (g.pickLen || 5)) * 100}%`; }); return; }
     this.pickCanvasKey = key;
     wrap.innerHTML = '';
     const dual = ctx.locals.length > 1;
@@ -494,12 +526,13 @@ export class UI {
       const team = ctx.teams[lh.team];
       const panel = h(`<div class="call-panel ${dual ? (k ? 'right' : 'left') : ''}" style="--tc:${team.primary}">
         <div class="call-head"><span>${off ? 'OFFENSE' : 'DEFENSE'}</span><b>${dual ? `P${k + 1} · ` : ''}${esc(team.name)}</b></div>
-        <div class="cards"></div><div class="timer"><i style="width:${(g.pickTimer / 5) * 100}%"></i></div></div>`);
+        <div class="cards"></div><div class="timer"><i style="width:${(g.pickTimer / (g.pickLen || 5)) * 100}%"></i></div></div>`);
       if (locked) { $('.cards', panel).innerHTML = `<div class="locked">PLAY CALLED ✓</div>`; }
       else ids.forEach((id, i) => {
         const play = off ? OFF_PLAYS[id] : DEF_PLAYS[id];
         const card = h(`<button class="call-card"><div class="cc-key">${keys[i]}</div><canvas width="150" height="110"></canvas><div class="cc-name">${esc(play.name)}</div><div class="cc-tag">${play.tag}</div><div class="cc-desc">${esc(play.desc)}</div></button>`);
         drawPlayDiagram($('canvas', card), id, !off, team.primary, lh.team === 1);
+        if (g.assist && (off ? i === 2 : id === 'cover')) { card.classList.add('easy'); card.insertBefore(h('<div class="cc-easy">EASIEST</div>'), card.firstChild); }
         card.style.animationDelay = `${i * 0.06}s`;
         card.addEventListener('click', () => this.app.pickPlay(lh.id, id));
         $('.cards', panel).appendChild(card);
@@ -573,6 +606,59 @@ export class UI {
     setTimeout(() => { const bt = box.querySelector('button.primary') || box.querySelector('button'); bt && bt.focus(); }, 50);
   }
   hideGameOver() { $('.gameover', this.hudEl).classList.add('hidden'); }
+  // Plain-language coaching for beginners: what to do right now, and what just happened.
+  updateCoach(g, view, ctx, replay) {
+    const el = $('.coach', this.hudEl);
+    let tip = '';
+    if (g.assist && !ctx.demo && ctx.locals.length === 1 && !replay && view) {
+      const lh = ctx.locals[0];
+      const hum = g.humans.find(x => x.id === lh.id);
+      const me = hum && hum.pIdx >= 0 ? hum.pIdx : -1;
+      const arrow = lh.team === 0 ? '→' : '←';
+      const b = view.ball;
+      const myBall = g.ballTeam === lh.team;
+      if (g.msg && g.msg.id !== this.coachMsgId) { this.coachMsgId = g.msg.id; this.coachMsgT = performance.now(); this.coachMsg = EXPLAIN[g.msg.text] || ''; }
+      const recent = this.coachMsg && performance.now() - this.coachMsgT < 4500;
+      if (g.phase === 'dead' || g.phase === 'td' || g.phase === 'quarterBreak') tip = recent ? this.coachMsg : '';
+      else if (g.phase === 'select') tip = g.pos === lh.team ? 'Your team has the ball. Pick a play with 1, 2 or 3. New? Try the one marked EASIEST.' : 'The other team has the ball. Pick a defense with 1, 2 or 3. Cover is the safest choice.';
+      else if (g.phase === 'presnap') tip = g.pos === lh.team ? 'Press SPACE to start the play.' : 'Get ready: chase whoever gets the ball.';
+      else if (g.phase === 'convChoice') tip = 'Bonus try! Pick 1 point (start close to the end zone) or 2 points (start farther away).';
+      else if (g.phase === 'kickChoice') tip = 'Kick away is the safe choice. An onside kick is risky: you keep the ball only if your team grabs it.';
+      else if (g.phase === 'onside' || g.phase === 'onsideSet') tip = 'Loose ball! Run over it to pick it up.';
+      else if (g.phase === 'live') {
+        if (b.state === 1) tip = myBall || g.pos === lh.team ? 'The ball is in the air. Your teammate will try to catch it.' : 'They threw it! Get near the landing circle and press J to jump and knock it down.';
+        else if (b.state === 2) tip = 'Fumble! The ball is loose. Run over it to grab it.';
+        else if (myBall && b.holder === me && me % 3 === 0 && g.passAllowed) tip = `Run ${arrow} toward the end zone, or press SPACE to throw to the teammate in the yellow ring.`;
+        else if (myBall && b.holder === me) tip = `Run ${arrow} into the end zone to score! Press J to dodge a tackler. Hold SHIFT to sprint.`;
+        else if (myBall) tip = 'Your teammate has the ball. Run in front of defenders to block them.';
+        else tip = 'Tackle the player in the red ring! Run into them, or press SPACE to dive at them.';
+      }
+      if (recent && (g.phase === 'select' || g.phase === 'presnap') && g.phaseT < 2.5) tip = this.coachMsg;
+    }
+    el.classList.toggle('hidden', !tip);
+    if (tip && el.dataset.t !== tip) { el.dataset.t = tip; $('span', el).textContent = tip; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  }
+
+  screen_learn(data = {}) {
+    const steps = [
+      ['Score in the end zone', 'Carry the ball into the colored area at the other end of the field, or catch a pass there. That is a touchdown, worth 6 points.'],
+      ['You get 4 tries', 'Each try is called a "down". Move the ball 20 yards (past the yellow line) within 4 tries and you get 4 new tries. If you don\'t, the other team gets the ball.'],
+      ['Every try is a play', 'Pick a play, then press SPACE to start. The play ends when the ball carrier is tackled, runs out of the field, or a pass hits the ground.'],
+      ['Run it or throw it', 'You can run with the ball, or throw it (a pass) to a teammate. Only the quarterback can throw, and only before crossing the blue line.'],
+      ['On defense, tackle!', 'When the other team has the ball, run into whoever is carrying it. If you catch one of their passes (an interception), the ball becomes yours.'],
+      ['After a touchdown', 'Pick a bonus try: 1 point from close or 2 points from farther away. Then the other team gets the ball. Most points after 4 quarters wins.'],
+    ];
+    const el = h(`<div class="panel learn"><h2>Learn the Basics</h2><p class="muted">Never played American football? Here is everything you need, in the order it happens.</p>
+      <ol class="learn-steps">${steps.map(([t, d]) => `<li><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join('')}</ol>
+      <div class="learn-key"><div><i class="ln blue"></i><b>Blue line</b> where the play starts</div><div><i class="ln gold"></i><b>Yellow line</b> reach it for 4 new tries</div><div><i class="ln ring"></i><b>Glowing ring</b> the player you control</div><div><i class="ln target"></i><b>Yellow ring</b> who you will throw to</div></div>
+      <p class="muted small">Tip: keep <b>Beginner help</b> on. A coach at the top of the screen tells you what to do on every play.</p>
+      <div class="setup-actions"></div></div>`);
+    const sa = $('.setup-actions', el);
+    sa.appendChild(this.btn('Back', () => (data.back ? data.back() : this.show('main')), 'ghost'));
+    sa.appendChild(this.btn('Play a Practice Game ▶', () => this.app.startPractice(), 'primary'));
+    return el;
+  }
+
   toggleControls() {
     this.ctlHidden = !this.ctlHidden;
     try { localStorage.setItem('gblitz.ctlHidden', this.ctlHidden ? '1' : '0'); } catch (e) { /* ignore */ }

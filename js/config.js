@@ -12,6 +12,7 @@ export const RULES = {
   quarterLen: 120,       // seconds of live-play clock per quarter
   firstDownYards: 20,
   pickTime: 5,           // play-call timer
+  pickTimeAssist: 12,    // longer timer when beginner assist is on
   deadTime: 1.7,         // pause after whistle
   tdCelebrate: 3.0,
   replayLen: 4.2,        // seconds of real time the replay plays back
@@ -42,6 +43,7 @@ export const PHYS = {
 export const COOLDOWNS = { juke: 1.4, spin: 2.4, stiff: 2.0, dive: 1.2, jump: 1.1, tackle: 1.3 };
 
 export const DIFFICULTY = {
+  beginner: { name: 'Beginner', speed: 0.8,  react: 0.55, tackle: 0.45, qbAcc: 0.55, catchSkill: 0.7, juke: 0.05, jumpTiming: 0.15, pursuit: 0.5 },
   rookie:  { name: 'Rookie',   speed: 0.86, react: 0.42, tackle: 0.55, qbAcc: 0.65, catchSkill: 0.78, juke: 0.15, jumpTiming: 0.35, pursuit: 0.6 },
   pro:     { name: 'Pro',      speed: 0.95, react: 0.25, tackle: 0.72, qbAcc: 0.8,  catchSkill: 0.86, juke: 0.35, jumpTiming: 0.6,  pursuit: 0.85 },
   allstar: { name: 'All-Star', speed: 1.02, react: 0.12, tackle: 0.86, qbAcc: 0.92, catchSkill: 0.92, juke: 0.6,  jumpTiming: 0.85, pursuit: 1.0 },
