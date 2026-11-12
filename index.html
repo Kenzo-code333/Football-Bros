@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Gridiron Blitz</title>
+<meta name="description" content="Gridiron Blitz - a 3v3 arcade American football game that runs in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "peerjs": "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/+esm"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+  <div id="ui"></div>
+  <div id="boot">
+    <div class="boot-logo">GRIDIRON <span>BLITZ</span></div>
+    <div class="boot-bar"><div></div></div>
+    <div class="boot-msg">Loading stadium…</div>
+  </div>
+</div>
+<noscript>Gridiron Blitz needs JavaScript enabled.</noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
